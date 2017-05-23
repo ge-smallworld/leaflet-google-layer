@@ -17,30 +17,55 @@ L.TileLayer.Google = L.TileLayer.extend({
 
   },
 
-  getSessionToken: function (error, callback) {
-    var sessionTokenUrl = L.Util.template(L.TileLayer.Google.SESSION_TOKEN_URL, {
-      GoogleTileAPIKey: this.options.GoogleTileAPIKey
-    });
-    var body = JSON.stringify({
-      mapType: this.options.mapType,
-      language: this.options.language,
-      region: this.options.region,
-      overlay:  true,
-      scale: 'scaleFactor1x'
-    });
-    var xhttp = new XMLHttpRequest();
+  _getSessionToken: function () {
+    var _this = this;
+    if (!this._promise) {
+      this._promise = new Promise(function (resolve, reject) {
+        var sessionTokenUrl = L.Util.template(L.TileLayer.Google.SESSION_TOKEN_URL, {
+          GoogleTileAPIKey: _this.options.GoogleTileAPIKey
+        });
+        var body = JSON.stringify({
+          mapType: _this.options.mapType,
+          language: _this.options.language,
+          region: _this.options.region,
+          overlay: true,
+          scale: 'scaleFactor1x'
+        });
+        var xhttp = new XMLHttpRequest();
 
-    xhttp.open('POST', sessionTokenUrl, true);
-    xhttp.setRequestHeader('Content-type', 'application/json');
-    xhttp.onreadystatechange = function() {
-      if (this.readyState === 4 && this.status === 200) {
-        this._sessionToken = JSON.parse(xhttp.responseText).session;
-        callback(this._sessionToken);
-      } else {
-        error();
-      }
-    };
-    xhttp.send(body);
+        xhttp.open('POST', sessionTokenUrl, true);
+        xhttp.setRequestHeader('Content-type', 'application/json');
+        xhttp.onreadystatechange = function () {
+          if (this.readyState === 4) {
+            if (this.status === 200) {
+              var token = JSON.parse(xhttp.responseText);
+              _this._sessionToken = token.session;
+              resolve(token.sesion, token.expiry);
+            } else {
+              console.log('rejecting', xhttp.responseText);
+              reject();
+            }
+          }
+        };
+        xhttp.send(body);
+      });
+    }
+    return this._promise;
+  },
+
+  _refreshToken: function () {
+    var _this = this;
+    this._getSessionToken().
+    then(function (session, expiry) {
+      setTimeout(function() {
+        if (_this._needToRefreshToken) {
+          this._promise = null;
+          _this._refreshToken();
+        }
+      }, (expiry - new Date().getTime() - 3600)*1000);
+    }).catch(function(e) {
+      console.log('refreshToken', e); // "oh, no!"
+    });
   },
 
   initialize: function (options) {
@@ -51,6 +76,9 @@ L.TileLayer.Google = L.TileLayer.extend({
     if (VALID_MAP_TYPES.indexOf(options.mapType) < 0) {
       throw new Error("'" + options.mapType + "' is an invalid mapType");
     }
+    this._sessionToken = null;
+    this._needToRefreshToken = false;
+
     // for https://github.com/Leaflet/Leaflet/issues/137
     if (!L.Browser.android) {
       this.on('tileunload', this._onTileRemove);
@@ -61,6 +89,7 @@ L.TileLayer.Google = L.TileLayer.extend({
   createTile: function (coords, done) {
     var tile = document.createElement('img');
 
+    // TODO, do we need to implement these two?
     L.DomEvent.on(tile, 'load', L.bind(this._tileOnLoad, this, done, tile));
     L.DomEvent.on(tile, 'error', L.bind(this._tileOnError, this, done, tile));
 
@@ -73,7 +102,12 @@ L.TileLayer.Google = L.TileLayer.extend({
      http://www.w3.org/TR/WCAG20-TECHS/H67
      */
     tile.alt = '';
-    tile.src = this.getTileUrl(coords);
+    var _this = this;
+    this._getSessionToken().then(function (session) {
+      tile.src = _this.getTileUrl(coords);
+    }).catch(function(e) {
+      console.log('createTile', e); // "oh, no!"
+    });
 
     return tile;
   },
@@ -84,7 +118,6 @@ L.TileLayer.Google = L.TileLayer.extend({
     return this.attribution;
   },
 
-  // Defined by Leaflet
   getTileUrl: function (coords) {
     return L.Util.template(L.TileLayer.Google.TILE_REQUEST, {
       z: coords.z,
@@ -101,6 +134,8 @@ L.TileLayer.Google = L.TileLayer.extend({
   onAdd: function (map) {
     map.on('moveend', this._updateAttribution, this);
     L.TileLayer.prototype.onAdd.call(this, map);
+    this._needToRefreshToken = true;
+    this._refreshToken();
     this._updateAttribution();
   },
 
@@ -108,6 +143,8 @@ L.TileLayer.Google = L.TileLayer.extend({
   onRemove: function (map) {
     map.off('moveend', this._updateAttribution, this);
     // TODO Remove attributions for this map
+    this._needToRefreshToken = false;
+    this._promise = null;
     map.attributionControl.removeAttribution(this.attribution);
     L.TileLayer.prototype.onRemove.call(this, map);
   },
@@ -118,34 +155,37 @@ L.TileLayer.Google = L.TileLayer.extend({
    * within the current map bounds
    */
   _updateAttribution: function () {
+    var _this = this;
     var map = this._map;
     if (!map || !map.attributionControl)
       return;
     var zoom = map.getZoom();
     var bbox = map.getBounds().toBBoxString().split(',');
-    var attributionUrl = L.Util.template(L.TileLayer.Google.ATTRIBUTION_URL, {
-      GoogleTileAPIKey: this.options.GoogleTileAPIKey,
-      sessionToken: this._sessionToken,
-      zoom: zoom,
-      south: bbox[0],
-      east: bbox[1],
-      north: bbox[2],
-      west: bbox[3]
+    this._getSessionToken().then(function (session) {
+      var attributionUrl = L.Util.template(L.TileLayer.Google.ATTRIBUTION_URL, {
+        GoogleTileAPIKey: _this.options.GoogleTileAPIKey,
+        sessionToken: _this._sessionToken,
+        zoom: zoom,
+        south: bbox[0],
+        east: bbox[1],
+        north: bbox[2],
+        west: bbox[3]
+      });
+
+      var xhttp = new XMLHttpRequest();
+      xhttp.onreadystatechange = function () {
+        if (this.readyState === 4 && this.status === 200) {
+          map.attributionControl.removeAttribution(_this.attribution);
+          _this.attribution = JSON.parse(this.responseText).copyright;
+          map.attributionControl.addAttribution(_this.attribution);
+        }
+      };
+      xhttp.open("GET", attributionUrl, true);
+      xhttp.send();
+    }).catch(function(e) {
+      console.log('updateAttribution', e); // "oh, no!"
     });
-
-    var _this = this;
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-      if (this.readyState === 4 && this.status === 200) {
-        map.attributionControl.removeAttribution(_this.attribution);
-        _this.attribution = JSON.parse(this.responseText).copyright;
-        map.attributionControl.addAttribution(_this.attribution);
-      }
-    };
-    xhttp.open("GET", attributionUrl, true);
-    xhttp.send();
   }
-
 })
 
 L.tileLayer.google = function (options) {

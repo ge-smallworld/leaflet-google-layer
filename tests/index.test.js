@@ -10,27 +10,28 @@ let mockL = require('./mock-leaflet');
 // Mock the leaflet library. From now on, whenever the code requires leaflet, the mockLeaflet will be used instead
 mock('leaflet', mockL);
 
-
-
-let leafletGoogleLayer = require('../index');
-
 describe('Google Layer', function () {
   let server;
+  let leafletGoogleLayer;
 
   beforeEach(function() {
+    leafletGoogleLayer = require('../index');
     server = sinon.fakeServer.create();
     global.XMLHttpRequest = sinon.useFakeXMLHttpRequest();
   });
 
-  it('should return a valid session token', function (done) {
-    leafletGoogleLayer.initialize({
-      'GoogleTileAPIKey': 'TestKey'
-    });
+  afterEach(function() {
+    server.restore();
+  });
 
+  it('should return a valid session token', function (done) {
     server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=TestKey',
       [200, {'Content-Type': 'application/json'}, '{"session":"valid-token"}']);
 
-    leafletGoogleLayer.getSessionToken(function () {},
+    leafletGoogleLayer.initialize({
+      'GoogleTileAPIKey': 'TestKey'
+    });
+    leafletGoogleLayer._getSessionToken(function () {},
       token => {
         assert.equal(token, 'valid-token');
         done();
@@ -44,6 +45,17 @@ describe('Google Layer', function () {
     });
 
     assert.equal(leafletGoogleLayer.options.GoogleTileAPIKey, '12345')
+  });
+
+  it('should have no token available after initialize', function () {
+    server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=12345',
+      [200, {'Content-Type': 'application/json'}, '{"session":"token1"}']);
+
+    leafletGoogleLayer.initialize({
+      'GoogleTileAPIKey': '12345'
+    });
+    assert.equal(leafletGoogleLayer._sessionToken, null);
+
   });
 
 });
