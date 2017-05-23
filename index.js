@@ -17,6 +17,34 @@ L.TileLayer.Google = L.TileLayer.extend({
 
   },
 
+  getSessionToken: function (error, callback) {
+    var xhttp = new XMLHttpRequest();
+
+    var sessionTokenUrl = L.Util.template(L.TileLayer.Google.SESSION_TOKEN_URL, {
+      GoogleTileAPIKey: this.options.GoogleTileAPIKey
+    });
+
+    xhttp.open('POST', sessionTokenUrl, true);
+    xhttp.setRequestHeader('Content-type', 'application/json');
+    xhttp.onreadystatechange = function() {
+      if (this.readyState === 4 && this.status === 200) {
+        this._sessionToken = JSON.parse(xhttp.responseText).session;
+        callback(this._sessionToken);
+      } else {
+        error();
+      }
+    };
+
+    xhttp.send(JSON.stringify({
+      mapType: this.options.mapType,
+      language: this.options.language,
+      region: this.options.region,
+      overlay:  true,
+      scale: 'scaleFactor1x'
+    }));
+
+  },
+
   _refreshToken: function () {
     var xhttp = new XMLHttpRequest();
     var sessionTokenUrl = L.Util.template(L.TileLayer.Google.SESSION_TOKEN_URL, {
@@ -45,9 +73,6 @@ L.TileLayer.Google = L.TileLayer.extend({
     if (VALID_MAP_TYPES.indexOf(options.mapType) < 0) {
       throw new Error("'" + options.mapType + "' is an invalid mapType");
     }
-
-    this._refreshToken();
-
     // for https://github.com/Leaflet/Leaflet/issues/137
     if (!L.Browser.android) {
       this.on('tileunload', this._onTileRemove);
