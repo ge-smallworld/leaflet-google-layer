@@ -18,11 +18,17 @@ L.TileLayer.Google = L.TileLayer.extend({
   },
 
   getSessionToken: function (error, callback) {
-    var xhttp = new XMLHttpRequest();
-
     var sessionTokenUrl = L.Util.template(L.TileLayer.Google.SESSION_TOKEN_URL, {
       GoogleTileAPIKey: this.options.GoogleTileAPIKey
     });
+    var body = JSON.stringify({
+      mapType: this.options.mapType,
+      language: this.options.language,
+      region: this.options.region,
+      overlay:  true,
+      scale: 'scaleFactor1x'
+    });
+    var xhttp = new XMLHttpRequest();
 
     xhttp.open('POST', sessionTokenUrl, true);
     xhttp.setRequestHeader('Content-type', 'application/json');
@@ -34,35 +40,7 @@ L.TileLayer.Google = L.TileLayer.extend({
         error();
       }
     };
-
-    xhttp.send(JSON.stringify({
-      mapType: this.options.mapType,
-      language: this.options.language,
-      region: this.options.region,
-      overlay:  true,
-      scale: 'scaleFactor1x'
-    }));
-
-  },
-
-  _refreshToken: function () {
-    var xhttp = new XMLHttpRequest();
-    var sessionTokenUrl = L.Util.template(L.TileLayer.Google.SESSION_TOKEN_URL, {
-      GoogleTileAPIKey: this.options.GoogleTileAPIKey
-    });
-    // Synchronous!
-    xhttp.open("POST", sessionTokenUrl, false);
-    xhttp.setRequestHeader("Content-type", "application/json");
-    xhttp.send(JSON.stringify({
-      "mapType": this.options.mapType,
-      "language": this.options.language,
-      "region": this.options.region,
-//          "layerTypes": [ "layerRoadmap", "layerStreetview" ],
-      "overlay":  true,
-      "scale": "scaleFactor1x"
-    }));
-
-    this._sessionToken = JSON.parse(xhttp.responseText).session;
+    xhttp.send(body);
   },
 
   initialize: function (options) {
