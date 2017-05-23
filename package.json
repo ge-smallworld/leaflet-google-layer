@@ -1,0 +1,40 @@
+{
+  "name": "leaflet-google-layer",
+  "version": "1.0.0",
+  "description": "Google Maps Layer for Leaflet v1.0.0",
+  "main": "index.js",
+  "browserify": {
+    "transform": [
+      "browserify-shim"
+    ]
+  },
+  "browserify-shim": {
+    "leaflet": "global:L"
+  },
+  "scripts": {
+    "build": "browserify index.js > leaflet-google-layer.js",
+    "uglify": "uglifyjs leaflet-google-layer.js -cm -o leaflet-google-layer.min.js",
+    "tests": "mocha tests/*.test.js"
+  },
+  "keywords": [
+    "leaflet",
+    "google"
+  ],
+  "author": "Enrique Cano",
+  "license": "GE Energy Connections",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ge-smallworld/leaflet-google-layer.git"
+  },
+  "dependencies": {
+    "browserify-shim": "^3.8.11",
+    "leaflet": "^1.0.3"
+  },
+  "devDependencies": {
+    "browserify": "^12.0.1",
+    "chai": "^3.5.0",
+    "mocha": "^3.4.1",
+    "mock-require": "^2.0.2",
+    "sinon": "^2.3.1"
+  }
+}
