@@ -173,13 +173,12 @@ L.TileLayer.Google = L.TileLayer.extend({
    * Update the attribution control of the map with the provider attributions
    * within the current map bounds
    */
-  _updateAttribution: function () {
+  _updateAttribution: function (done) {
     var map = this._map;
     var _this = this;
 
     if (!map || !map.attributionControl)
       return;
-
     this._getSessionToken()
       .then(function() {
         var attributionUrl = _this._getAttributionUrl();
@@ -192,13 +191,19 @@ L.TileLayer.Google = L.TileLayer.extend({
             _this.attribution = JSON.parse(this.responseText).copyright;
             // Add new attribution
             map.attributionControl.addAttribution(_this.attribution);
+            if (done) {
+              done(null, _this.attribution);
+            }
           }
           // TODO what if the status is not 200?
         };
         xhttp.open("GET", attributionUrl, true);
         xhttp.send();
-      })
+      }.bind(this))
       .catch(function(e) {
+        if (done) {
+          done(e);
+        }
         console.error('updateAttribution', e);
       });
   }
