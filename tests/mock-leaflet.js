@@ -29,4 +29,8 @@ mockL.Util.template = function (arg1, arg2) {
 mockL.Browser = {};
 mockL.Browser.android = true;
 
+mockL.DomEvent = {};
+mockL.DomEvent.on = function () {};
+
+mockL.bind = function () {};
 module.exports = mockL;
