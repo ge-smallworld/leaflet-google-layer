@@ -9,11 +9,11 @@
      * @return {Array} [south_lat, west_lng, north_lat, east_lng]
      */
     function toBingBBox (bboxString) {
-      var bbox = bboxString.split(',')
+      var bbox = bboxString.split(',');
       return [bbox[1], bbox[0], bbox[3], bbox[2]]
     }
 
-    var VALID_MAP_TYPES = ['roadmap', 'satellite']
+    var VALID_MAP_TYPES = ['roadmap', 'satellite'];
 
     L.TileLayer.Google = L.TileLayer.extend({
       options: {
@@ -31,10 +31,10 @@
       },
 
       _refreshToken: function () {
-        var xhttp = new XMLHttpRequest()
+        var xhttp = new XMLHttpRequest();
         var sessionTokenUrl = L.Util.template(L.TileLayer.Google.SESSION_TOKEN_URL, {
           GoogleTileAPIKey: this.options.GoogleTileAPIKey
-        })
+        });
         // Synchronous!
         xhttp.open("POST", sessionTokenUrl, false);
         xhttp.setRequestHeader("Content-type", "application/json");
@@ -54,7 +54,7 @@
         if (!options || !options.GoogleTileAPIKey) {
           throw new Error('Must supply options.GoogleTileAPIKey')
         }
-        options = L.setOptions(this, options)
+        options = L.setOptions(this, options);
         if (VALID_MAP_TYPES.indexOf(options.mapType) < 0) {
           throw new Error("'" + options.mapType + "' is an invalid mapType")
         }
@@ -69,10 +69,10 @@
 
       // Defined by Leaflet
       createTile: function (coords, done) {
-        var tile = document.createElement('img')
+        var tile = document.createElement('img');
 
-        L.DomEvent.on(tile, 'load', L.bind(this._tileOnLoad, this, done, tile))
-        L.DomEvent.on(tile, 'error', L.bind(this._tileOnError, this, done, tile))
+        L.DomEvent.on(tile, 'load', L.bind(this._tileOnLoad, this, done, tile));
+        L.DomEvent.on(tile, 'error', L.bind(this._tileOnError, this, done, tile));
 
         if (this.options.crossOrigin) {
           tile.crossOrigin = ''
@@ -82,8 +82,8 @@
          Alt tag is set to empty string to keep screen readers from reading URL and for compliance reasons
          http://www.w3.org/TR/WCAG20-TECHS/H67
          */
-        tile.alt = ''
-        tile.src = this.getTileUrl(coords)
+        tile.alt = '';
+        tile.src = this.getTileUrl(coords);
 
         return tile
       },
@@ -109,16 +109,16 @@
       // Runs every time the layer has been added to the map
       // Update the attribution control every time the map is moved
       onAdd: function (map) {
-        map.on('moveend', this._updateAttribution, this)
-        L.TileLayer.prototype.onAdd.call(this, map)
+        map.on('moveend', this._updateAttribution, this);
+        L.TileLayer.prototype.onAdd.call(this, map);
         this._updateAttribution()
       },
 
       // Clean up events and remove attributions from attribution control
       onRemove: function (map) {
-        map.off('moveend', this._updateAttribution, this)
+        map.off('moveend', this._updateAttribution, this);
         // TODO Remove attributions for this map
-        map.attributionControl.removeAttribution(this.attribution)
+        map.attributionControl.removeAttribution(this.attribution);
         L.TileLayer.prototype.onRemove.call(this, map)
       },
 
@@ -128,10 +128,10 @@
        * within the current map bounds
        */
       _updateAttribution: function () {
-        var map = this._map
-        if (!map || !map.attributionControl) return
-        var zoom = map.getZoom()
-        var bbox = toBingBBox(map.getBounds().toBBoxString())
+        var map = this._map;
+        if (!map || !map.attributionControl) return;
+        var zoom = map.getZoom();
+        var bbox = toBingBBox(map.getBounds().toBBoxString());
 
         var attributionUrl = L.Util.template(L.TileLayer.Google.ATTRIBUTION_URL, {
           GoogleTileAPIKey: this.options.GoogleTileAPIKey,
@@ -141,7 +141,7 @@
           south: bbox[1],
           west: bbox[2],
           north: bbox[3]
-        })
+        });
 
         var _this = this;
         var xhttp = new XMLHttpRequest();
@@ -156,11 +156,11 @@
         xhttp.send();
       }
 
-    })
+    });
 
     L.tileLayer.google = function (options) {
       return new L.TileLayer.Google(options)
-    }
+    };
 
     module.exports = L.TileLayer.Google
 

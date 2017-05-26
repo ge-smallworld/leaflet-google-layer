@@ -153,8 +153,6 @@ describe('Google Layer', function () {
     assert.throws(function(){leafletGoogleLayer.setMapType('invalidMapType');},"'invalidMapType' is an invalid mapType");
   });
 
-
-
   it('should get a new session token when setting a new language', function() {
     leafletGoogleLayer.initialize({
       'GoogleTileAPIKey': '1234'
@@ -178,4 +176,29 @@ describe('Google Layer', function () {
     leafletGoogleLayer.setRegion('fr');
     assert.isTrue(leafletGoogleLayer._getSessionToken.called);
   });
+
+  it('should retry to get a session token with exponential backoff', function(done) {
+    this.timeout(10000);
+    leafletGoogleLayer.initialize({
+      'GoogleTileAPIKey': '1234'
+    });
+
+    server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=1234', [404, {}, '']);
+
+    leafletGoogleLayer._getSessionToken();
+
+    assert.isTrue(leafletGoogleLayer._getSessionToken.calledOnce);
+    assert.equal(leafletGoogleLayer._exponentialBackoff, 1000);
+
+    setTimeout(function() {
+      assert.isTrue(leafletGoogleLayer._getSessionToken.calledTwice);
+      assert.equal(leafletGoogleLayer._exponentialBackoff, 2000);
+    }, 2000);
+
+    setTimeout(function() {
+      assert.isTrue(leafletGoogleLayer._getSessionToken.calledThrice);
+      assert.equal(leafletGoogleLayer._exponentialBackoff, 4000);
+      done();
+    }, 4000);
+  })
 });
