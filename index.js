@@ -151,6 +151,48 @@ L.TileLayer.Google = L.TileLayer.extend({
     L.TileLayer.prototype.onRemove.call(this, map);
   },
 
+  setLanguage: function(newLanguage) {
+    if (newLanguage && this.options.language !== newLanguage) {
+      this.options.language = newLanguage;
+      this.redraw();
+    }
+  },
+
+  /**
+   * Sets a new map type for the the Google tile layer. If the map type
+   * is valid and different than the current map type, the layer's tiles
+   * will be reset and new tiles will be requested.
+   *
+   * @param {String} newSet - The name of the new imagery set
+   */
+  setMapType: function(newSet) {
+    if (!newSet || VALID_MAP_TYPES.indexOf(newSet) === -1) {
+      throw new Error("'" + newSet + "' is an invalid mapType");
+    }
+
+    if (this.options.mapType !== newSet) {
+      this.options.mapType = newSet;
+      // this._removeAllAttributions();
+      this._promise = null;
+      this._getSessionToken().then(function() {
+        this.redraw();
+        this._updateAttribution();
+      }.bind(this));
+    }
+  },
+
+  setRegion: function(newRegion) {
+    if (newRegion && this.options.region !== newRegion) {
+      this.options.region = newRegion;
+      // this._removeAllAttributions();
+      this._promise = null;
+      this._getSessionToken().then(function() {
+        this.redraw();
+        this._updateAttribution();
+      }.bind(this));
+    }
+  },
+
   /*
    * map must not be null
    */
