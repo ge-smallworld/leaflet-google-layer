@@ -18,10 +18,12 @@ describe('Google Layer', function () {
     server = sinon.fakeServer.create();
     server.respondImmediately = true;
     global.XMLHttpRequest = sinon.useFakeXMLHttpRequest();
+    sinon.spy(leafletGoogleLayer, '_getSessionToken');
   });
 
   afterEach(function() {
     server.restore();
+    leafletGoogleLayer._getSessionToken.restore();
   });
 
   it('should return a valid session token', function (done) {
@@ -129,5 +131,51 @@ describe('Google Layer', function () {
       assert.equal(leafletGoogleLayer.getAttribution(), 'this is a test');
       done();
     });
+  });
+
+  it('should get a new session token when setting a new map type', function() {
+    leafletGoogleLayer.initialize({
+      'GoogleTileAPIKey': '1234'
+    });
+
+    server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=1234',
+      [200, {'Content-Type': 'application/json'}, '{"session":"session","expiry":"1000"}']);
+
+    leafletGoogleLayer.setMapType('satellite');
+    assert.isTrue(leafletGoogleLayer._getSessionToken.called);
+  });
+
+  it('should throw an error wen attempting to set an invalid map type', function() {
+    leafletGoogleLayer.initialize({
+      'GoogleTileAPIKey': '1234'
+    });
+
+    assert.throws(function(){leafletGoogleLayer.setMapType('invalidMapType');},"'invalidMapType' is an invalid mapType");
+  });
+
+
+
+  it('should get a new session token when setting a new language', function() {
+    leafletGoogleLayer.initialize({
+      'GoogleTileAPIKey': '1234'
+    });
+
+    server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=1234',
+      [200, {'Content-Type': 'application/json'}, '{"session":"session","expiry":"1000"}']);
+
+    leafletGoogleLayer.setLanguage('fr');
+    assert.isTrue(leafletGoogleLayer._getSessionToken.called);
+  });
+
+  it('should get a new session token when setting a new region', function() {
+    leafletGoogleLayer.initialize({
+      'GoogleTileAPIKey': '1234'
+    });
+
+    server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=1234',
+      [200, {'Content-Type': 'application/json'}, '{"session":"session","expiry":"1000"}']);
+
+    leafletGoogleLayer.setRegion('fr');
+    assert.isTrue(leafletGoogleLayer._getSessionToken.called);
   });
 });
