@@ -52,7 +52,7 @@ L.TileLayer.Google = L.TileLayer.extend({
                 _this._getSessionToken();
               }, _this._exponentialBackoff);
 
-              reject(`failed, trying again in ${_this._exponentialBackoff/1000} seconds`);
+              reject('Session request failed, trying again in ' + '${_this._exponentialBackoff/1000}' + 'seconds');
             }
           }
         };
@@ -160,6 +160,21 @@ L.TileLayer.Google = L.TileLayer.extend({
     L.TileLayer.prototype.onRemove.call(this, map);
   },
 
+  /**
+   * Sets a new Google Map Tiles API key. Resets the layer's tiles and requests new
+   * tiles with the updated key.
+   *
+   * @param {String} newKey - A valid Google Maps API key
+   */
+  setKey: function(newKey) {
+    if (newKey && this.options.GoogleTileAPIKey !== newKey) {
+      this.options.GoogleTileAPIKey = newKey;
+      this._getSessionToken().then(function() {
+        this.redraw();
+      }.bind(this));
+    }
+  },
+
   setLanguage: function(newLanguage) {
     if (newLanguage && this.options.language !== newLanguage) {
       this.options.language = newLanguage;
@@ -237,6 +252,7 @@ L.TileLayer.Google = L.TileLayer.extend({
     this._getSessionToken()
       .then(function() {
         var attributionUrl = _this._getAttributionUrl();
+        var exponentialTimeout = 1000;
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
           if (this.readyState === 4 && this.status === 200) {
@@ -250,7 +266,11 @@ L.TileLayer.Google = L.TileLayer.extend({
               done(null, _this.attribution);
             }
           }
-          // TODO what if the status is not 200?
+          setTimeout(function() {
+            console.error('Attribution request unsuccessful, retrying in ' + exponentialTimeout/1000 + ' seconds');
+            xhttp.send();
+            exponentialTimeout *= 2;
+          }, exponentialTimeout);
         };
         xhttp.open("GET", attributionUrl, true);
         xhttp.send();

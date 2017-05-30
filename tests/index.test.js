@@ -177,6 +177,18 @@ describe('Google Layer', function () {
     assert.isTrue(leafletGoogleLayer._getSessionToken.called);
   });
 
+  it('should get a new session token when setting a new key', function() {
+    leafletGoogleLayer.initialize({
+      'GoogleTileAPIKey': '1234'
+    });
+
+    server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=XXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      [200, {'Content-Type': 'application/json'}, '{"session":"session","expiry":"1000"}']);
+
+    leafletGoogleLayer.setKey('XXXXXXXXXXXXXXXXXXXXXXXXXXX');
+    assert.isTrue(leafletGoogleLayer._getSessionToken.called);
+  });
+
   it('should retry to get a session token with exponential backoff', function(done) {
     this.timeout(10000);
     leafletGoogleLayer.initialize({
