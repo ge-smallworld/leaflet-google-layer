@@ -212,5 +212,5 @@ describe('Google Layer', function () {
       assert.equal(leafletGoogleLayer._exponentialBackoff, 4000);
       done();
     }, 4000);
-  })
+  });
 });
