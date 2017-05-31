@@ -191,6 +191,7 @@ describe('Google Layer', function () {
 
   it('should retry to get a session token with exponential backoff', function(done) {
     this.timeout(10000);
+
     leafletGoogleLayer.initialize({
       'GoogleTileAPIKey': '1234'
     });
@@ -211,6 +212,68 @@ describe('Google Layer', function () {
       assert.isTrue(leafletGoogleLayer._getSessionToken.calledThrice);
       assert.equal(leafletGoogleLayer._exponentialBackoff, 4000);
       done();
+    }, 4000);
+  });
+
+  it('should retry to get the attribution with exponential backoff', function (done) {
+    this.timeout(10000);
+    sinon.spy(leafletGoogleLayer, '_makeGetRequest');
+    server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=1234',
+      [200, {'Content-Type': 'application/json'}, '{"session":"session","expiry":"1000"}']);
+
+    server.respondWith('GET', 'https://www.googleapis.com/tile/v1/viewport?session=session&zoom=1&north=2&south=3&east=4&west=5&key=1234',
+      [404, {}, '']);
+
+    leafletGoogleLayer.initialize({
+      'GoogleTileAPIKey': '1234'
+    });
+
+    const attributions = {};
+    let mockMap = function() {
+      return {
+        getZoom: function() {
+          return 1;
+        },
+        getBounds: function() {
+          return {
+            toBBoxString: function() {
+              return '3,4,2,5';
+            }
+          }
+        },
+        attributionControl: {
+          addAttribution: function(attr) {
+            if (!attributions[attr]) {
+              attributions[attr] = true;
+            }
+          },
+          removeAttribution: function(attr) {
+            if (attributions[attr]) {
+              attributions[attr] = false;
+            }
+          }
+        }
+      };
+    };
+    leafletGoogleLayer._map = mockMap();
+
+    leafletGoogleLayer._updateAttribution();
+
+    setTimeout(function() {
+      assert.isTrue(leafletGoogleLayer._makeGetRequest.calledOnce);
+      assert.equal(leafletGoogleLayer._exponentialTimeout, 1000);
+    }, 1000);
+
+    setTimeout(function() {
+      assert.isTrue(leafletGoogleLayer._makeGetRequest.calledTwice);
+      assert.equal(leafletGoogleLayer._exponentialTimeout, 2000);
+    }, 2000);
+
+    setTimeout(function() {
+      assert.isTrue(leafletGoogleLayer._makeGetRequest.calledThrice);
+      assert.equal(leafletGoogleLayer._exponentialTimeout, 4000);
+      // leafletGoogleLayer._makeGetRequest.restore();
+      // done();
     }, 4000);
   });
 });

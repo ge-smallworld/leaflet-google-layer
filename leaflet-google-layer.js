@@ -54,7 +54,7 @@ L.TileLayer.Google = L.TileLayer.extend({
                 _this._getSessionToken();
               }, _this._exponentialBackoff);
 
-              reject('Session request failed, trying again in ' + '${_this._exponentialBackoff/1000}' + 'seconds');
+              reject('Session request failed, trying again in ' + _this._exponentialBackoff/1000 + 'seconds');
             }
           }
         };
@@ -241,6 +241,11 @@ L.TileLayer.Google = L.TileLayer.extend({
     });
   },
 
+  _makeGetRequest: function (xhttp, url) {
+    xhttp.open("GET", url, true);
+    xhttp.send();
+  },
+
   /**
    * Update the attribution control of the map with the provider attributions
    * within the current map bounds
@@ -254,7 +259,7 @@ L.TileLayer.Google = L.TileLayer.extend({
     this._getSessionToken()
       .then(function() {
         var attributionUrl = _this._getAttributionUrl();
-        var exponentialTimeout = 1000;
+        _this._exponentialTimeout = 1000;
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
           if (this.readyState === 4 && this.status === 200) {
@@ -264,21 +269,21 @@ L.TileLayer.Google = L.TileLayer.extend({
             _this.attribution = JSON.parse(this.responseText).copyright;
             // Add new attribution
             map.attributionControl.addAttribution(_this.attribution);
-            if (done) {
+            if (done && !done.target) {
               done(null, _this.attribution);
             }
+          } else if (this.readyState === 4) {
+            console.error('Attribution request unsuccessful, retrying in ' + _this._exponentialTimeout / 1000 + ' seconds');
+            setTimeout(function () {
+              _this._exponentialTimeout *= 2;
+              _this._makeGetRequest(xhttp, attributionUrl);
+            }, _this._exponentialTimeout);
           }
-          setTimeout(function() {
-            console.error('Attribution request unsuccessful, retrying in ' + exponentialTimeout/1000 + ' seconds');
-            xhttp.send();
-            exponentialTimeout *= 2;
-          }, exponentialTimeout);
         };
-        xhttp.open("GET", attributionUrl, true);
-        xhttp.send();
+        _this._makeGetRequest(xhttp, attributionUrl);
       }.bind(this))
       .catch(function(e) {
-        if (done) {
+        if (done && !done.target) {
           done(e);
         }
         console.error('updateAttribution', e);
