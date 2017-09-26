@@ -1,3 +1,4 @@
+var L = require('leaflet');
 var VALID_MAP_TYPES = ['roadmap', 'satellite'];
 
 L.TileLayer.Google = L.TileLayer.extend({
