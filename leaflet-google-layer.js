@@ -1,7 +1,4 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-(function (global){
-var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
-
 var VALID_MAP_TYPES = ['roadmap', 'satellite'];
 
 L.TileLayer.Google = L.TileLayer.extend({
@@ -9,7 +6,8 @@ L.TileLayer.Google = L.TileLayer.extend({
     GoogleTileAPIKey: null, // Required
     mapType: 'roadmap',
     language: 'en-GB',
-    region: 'gb'
+    region: 'gb',
+    mapStyle: []
   },
 
   statics: {
@@ -211,6 +209,18 @@ L.TileLayer.Google = L.TileLayer.extend({
     }
   },
 
+  setMapStyle: function(newStyle) {
+    if (newStyle && this.options.mapStyle !== newStyle) {
+      console.log('setMapStyle');
+      this.options.mapStyle = newStyle;
+      this._promise = null;
+      this._getSessionToken().then(function() {
+        this.redraw();
+        this._updateAttribution();
+      }.bind(this));
+    }
+  },
+
   setRegion: function(newRegion) {
     if (newRegion && this.options.region !== newRegion) {
       this.options.region = newRegion;
@@ -297,5 +307,4 @@ L.tileLayer.google = function (options) {
 
 module.exports = L.TileLayer.Google;
 
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}]},{},[1]);
