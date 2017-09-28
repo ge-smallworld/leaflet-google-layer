@@ -213,7 +213,6 @@ L.TileLayer.Google = L.TileLayer.extend({
 
   setMapStyle: function(newStyle) {
     if (newStyle && this.options.mapStyle !== newStyle) {
-      console.log('setMapStyle');
       this.options.mapStyle = newStyle;
       this._promise = null;
       this._getSessionToken().then(function() {
