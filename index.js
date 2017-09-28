@@ -1,5 +1,4 @@
 var L = require('leaflet');
-
 var VALID_MAP_TYPES = ['roadmap', 'satellite'];
 
 L.TileLayer.Google = L.TileLayer.extend({
@@ -7,7 +6,8 @@ L.TileLayer.Google = L.TileLayer.extend({
     GoogleTileAPIKey: null, // Required
     mapType: 'roadmap',
     language: 'en-GB',
-    region: 'gb'
+    region: 'gb',
+    mapStyle: []
   },
 
   statics: {
@@ -201,6 +201,17 @@ L.TileLayer.Google = L.TileLayer.extend({
     if (this.options.mapType !== newSet) {
       this.options.mapType = newSet;
       // this._removeAllAttributions();
+      this._promise = null;
+      this._getSessionToken().then(function() {
+        this.redraw();
+        this._updateAttribution();
+      }.bind(this));
+    }
+  },
+
+  setMapStyle: function(newStyle) {
+    if (newStyle && this.options.mapStyle !== newStyle) {
+      this.options.mapStyle = newStyle;
       this._promise = null;
       this._getSessionToken().then(function() {
         this.redraw();
