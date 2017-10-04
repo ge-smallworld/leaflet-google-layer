@@ -32,7 +32,8 @@ L.TileLayer.Google = L.TileLayer.extend({
           language: _this.options.language,
           region: _this.options.region,
           overlay: true,
-          scale: 'scaleFactor1x'
+          scale: 'scaleFactor1x',
+          styles: _this.options.mapStyle
         });
         var xhttp = new XMLHttpRequest();
 
@@ -200,7 +201,6 @@ L.TileLayer.Google = L.TileLayer.extend({
 
     if (this.options.mapType !== newSet) {
       this.options.mapType = newSet;
-      // this._removeAllAttributions();
       this._promise = null;
       this._getSessionToken().then(function() {
         this.redraw();
