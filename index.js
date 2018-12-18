@@ -57,7 +57,7 @@ L.TileLayer.Google = L.TileLayer.extend({
                 _this._timer = setTimeout(function() {
                   _this._promise = null;
                   _this._exponentialBackoff *= 2;
-                  _this._getSessionToken().catch(e => console.log(e));
+                  _this._getSessionToken().catch(function(e) { console.log(e); });
                 }, _this._exponentialBackoff);
 
                 reject('Session request failed, trying again in ' + _this._exponentialBackoff/1000 + 'seconds');
@@ -180,7 +180,7 @@ L.TileLayer.Google = L.TileLayer.extend({
       this.options.GoogleTileAPIKey = newKey;
       this._getSessionToken().then(function() {
         this.redraw();
-      }.bind(this)).catch(e => console.log(e));
+      }.bind(this)).catch(function(e) { console.log(e); });
     }
   },
 
@@ -191,7 +191,7 @@ L.TileLayer.Google = L.TileLayer.extend({
       this._getSessionToken().then(function() {
         this.redraw();
         this._updateAttribution();
-      }.bind(this)).catch(e => console.log(e));
+      }.bind(this)).catch(function(e) { console.log(e); });
     }
   },
 
@@ -213,7 +213,7 @@ L.TileLayer.Google = L.TileLayer.extend({
       this._getSessionToken().then(function() {
         this.redraw();
         this._updateAttribution();
-      }.bind(this)).catch(e => console.log(e));
+      }.bind(this)).catch(function(e) { console.log(e); });
     }
   },
 
@@ -224,7 +224,7 @@ L.TileLayer.Google = L.TileLayer.extend({
       this._getSessionToken().then(function() {
         this.redraw();
         this._updateAttribution();
-      }.bind(this)).catch(e => console.log(e));
+      }.bind(this)).catch(function(e) { console.log(e); });
     }
   },
 
@@ -236,7 +236,7 @@ L.TileLayer.Google = L.TileLayer.extend({
       this._getSessionToken().then(function() {
         this.redraw();
         this._updateAttribution();
-      }.bind(this)).catch(e => console.log(e));
+      }.bind(this)).catch(function(e) { console.log(e); });
     }
   },
 

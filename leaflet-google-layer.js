@@ -50,13 +50,16 @@ L.TileLayer.Google = L.TileLayer.extend({
               resolve(token);
             } else {
               if (_this._exponentialBackoff > _this.options.requestTimeout) {
-                reject('Session request failed.  Last request took more than ' + _this.options.requestTimeout/1000 + 'seconds. Giving up.');
+                if (_this._timer) {
+                  clearTimeout(_this._timer);
+                }
+                reject('Session request failed.  Last request took more than ' + _this.options.requestTimeout/1000 + ' seconds. Giving up.');
               }
               else {
-                setTimeout(function() {
+                _this._timer = setTimeout(function() {
                   _this._promise = null;
                   _this._exponentialBackoff *= 2;
-                  _this._getSessionToken();
+                  _this._getSessionToken().catch(function(e) { console.log(e); });
                 }, _this._exponentialBackoff);
 
                 reject('Session request failed, trying again in ' + _this._exponentialBackoff/1000 + 'seconds');
@@ -179,7 +182,7 @@ L.TileLayer.Google = L.TileLayer.extend({
       this.options.GoogleTileAPIKey = newKey;
       this._getSessionToken().then(function() {
         this.redraw();
-      }.bind(this)).catch(e => console.log(e));
+      }.bind(this)).catch(function(e) { console.log(e); });
     }
   },
 
@@ -190,7 +193,7 @@ L.TileLayer.Google = L.TileLayer.extend({
       this._getSessionToken().then(function() {
         this.redraw();
         this._updateAttribution();
-      }.bind(this));
+      }.bind(this)).catch(function(e) { console.log(e); });
     }
   },
 
@@ -212,7 +215,7 @@ L.TileLayer.Google = L.TileLayer.extend({
       this._getSessionToken().then(function() {
         this.redraw();
         this._updateAttribution();
-      }.bind(this));
+      }.bind(this)).catch(function(e) { console.log(e); });
     }
   },
 
@@ -223,7 +226,7 @@ L.TileLayer.Google = L.TileLayer.extend({
       this._getSessionToken().then(function() {
         this.redraw();
         this._updateAttribution();
-      }.bind(this));
+      }.bind(this)).catch(function(e) { console.log(e); });
     }
   },
 
@@ -235,7 +238,7 @@ L.TileLayer.Google = L.TileLayer.extend({
       this._getSessionToken().then(function() {
         this.redraw();
         this._updateAttribution();
-      }.bind(this));
+      }.bind(this)).catch(function(e) { console.log(e); });
     }
   },
 
@@ -279,6 +282,7 @@ L.TileLayer.Google = L.TileLayer.extend({
         _this._exponentialTimeout = 1000;
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
+          clearTimeout(_this._timer);
           if (this.readyState === 4 && this.status === 200) {
             // Remove existing attribution
             map.attributionControl.removeAttribution(_this.attribution);
@@ -290,12 +294,12 @@ L.TileLayer.Google = L.TileLayer.extend({
               done(null, _this.attribution);
             }
           } else if (this.readyState === 4) {
-            if (_this._exponentialTimeout > _this.options.requestTimeout) {
+            if (_this._exponentialTimeout >= _this.options.requestTimeout) {
               console.error('Attribution request unsuccessful.  Last request took more than ' + _this.options.requestTimeout / 1000 + ' seconds.  Giving up.');
             }
             else {            
               console.error('Attribution request unsuccessful, retrying in ' + _this._exponentialTimeout / 1000 + ' seconds');
-              setTimeout(function () {
+              _this._timer = setTimeout(function () {
                 _this._exponentialTimeout *= 2;
                 _this._makeGetRequest(xhttp, _this._getAttributionUrl());
               }, _this._exponentialTimeout);
