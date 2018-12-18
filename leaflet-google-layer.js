@@ -179,7 +179,7 @@ L.TileLayer.Google = L.TileLayer.extend({
       this.options.GoogleTileAPIKey = newKey;
       this._getSessionToken().then(function() {
         this.redraw();
-      }.bind(this));
+      }.bind(this)).catch(e => console.log(e));
     }
   },
 

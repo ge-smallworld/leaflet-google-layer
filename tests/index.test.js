@@ -19,6 +19,7 @@ describe('Google Layer', function () {
     server.respondImmediately = true;
     global.XMLHttpRequest = sinon.useFakeXMLHttpRequest();
     sinon.spy(leafletGoogleLayer, '_getSessionToken');
+    leafletGoogleLayer.redraw = () => {};
   });
 
   afterEach(function() {
@@ -140,6 +141,8 @@ describe('Google Layer', function () {
 
     server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=1234',
       [200, {'Content-Type': 'application/json'}, '{"session":"session","expiry":"1000"}']);
+    server.respondWith('GET', 'https://www.googleapis.com/tile/v1/viewport?session=session&zoom=1&north=2&south=3&east=4&west=5&key=1234',
+      [200, {'Content-Type': 'application/json'}, '{"copyright":"this is a test"}']);
 
     leafletGoogleLayer.setMapType('satellite');
     assert.isTrue(leafletGoogleLayer._getSessionToken.called);
@@ -162,6 +165,8 @@ describe('Google Layer', function () {
 
     server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=1234',
       [200, {'Content-Type': 'application/json'}, '{"session":"session","expiry":"1000"}']);
+    server.respondWith('GET', 'https://www.googleapis.com/tile/v1/viewport?session=session&zoom=1&north=2&south=3&east=4&west=5&key=1234',
+      [200, {'Content-Type': 'application/json'}, '{"copyright":"this is a test"}']);
 
     leafletGoogleLayer.setLanguage('fr');
     assert.isTrue(leafletGoogleLayer._getSessionToken.called);
@@ -174,6 +179,8 @@ describe('Google Layer', function () {
 
     server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=1234',
       [200, {'Content-Type': 'application/json'}, '{"session":"session","expiry":"1000"}']);
+    server.respondWith('GET', 'https://www.googleapis.com/tile/v1/viewport?session=session&zoom=1&north=2&south=3&east=4&west=5&key=1234',
+      [200, {'Content-Type': 'application/json'}, '{"copyright":"this is a test"}']);
 
     leafletGoogleLayer.setRegion('fr');
     assert.isTrue(leafletGoogleLayer._getSessionToken.called);
@@ -186,7 +193,7 @@ describe('Google Layer', function () {
 
     server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=XXXXXXXXXXXXXXXXXXXXXXXXXXX',
       [200, {'Content-Type': 'application/json'}, '{"session":"session","expiry":"1000"}']);
-
+    
     leafletGoogleLayer.setKey('XXXXXXXXXXXXXXXXXXXXXXXXXXX');
     assert.isTrue(leafletGoogleLayer._getSessionToken.called);
   });
@@ -199,8 +206,10 @@ describe('Google Layer', function () {
     });
 
     server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=1234', [404, {}, '']);
+    server.respondWith('GET', 'https://www.googleapis.com/tile/v1/viewport?session=session&zoom=1&north=2&south=3&east=4&west=5&key=1234',
+      [200, {'Content-Type': 'application/json'}, '{"copyright":"this is a test"}']);
 
-    leafletGoogleLayer._getSessionToken();
+    leafletGoogleLayer._getSessionToken().catch(e => console.log(e));
 
     assert.isTrue(leafletGoogleLayer._getSessionToken.calledOnce);
     assert.equal(leafletGoogleLayer._exponentialBackoff, 1000);
@@ -274,6 +283,7 @@ describe('Google Layer', function () {
     setTimeout(function() {
       assert.isTrue(leafletGoogleLayer._makeGetRequest.calledThrice);
       assert.equal(leafletGoogleLayer._exponentialTimeout, 4000);
+      leafletGoogleLayer._makeGetRequest.restore();
       leafletGoogleLayer._tileZoom = 1;
       done();
     }, 4000);
@@ -290,7 +300,7 @@ describe('Google Layer', function () {
 
     leafletGoogleLayer.initialize({
       'GoogleTileAPIKey': '1234',
-      'requestTimeout': '1000'
+      'requestTimeout': '2000'
     });
     leafletGoogleLayer._tileZoom = 2;
 
