@@ -40,6 +40,7 @@ L.TileLayer.Google = L.TileLayer.extend({
         xhttp.open('POST', sessionTokenUrl, true);
         xhttp.setRequestHeader('Content-type', 'application/json');
         xhttp.onreadystatechange = function () {
+          clearTimeout(_this._timer);
           if (this.readyState === 4) {
             if (this.status === 200) {
               _this._exponentialBackoff = null;
@@ -48,9 +49,6 @@ L.TileLayer.Google = L.TileLayer.extend({
               resolve(token);
             } else {
               if (_this._exponentialBackoff > _this.options.requestTimeout) {
-                if (_this._timer) {
-                  clearTimeout(_this._timer);
-                }
                 reject('Session request failed.  Last request took more than ' + _this.options.requestTimeout/1000 + ' seconds. Giving up.');
               }
               else {
