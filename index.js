@@ -237,7 +237,9 @@ L.TileLayer.Google = L.TileLayer.extend({
    */
   _getAttributionUrl: function () {
     var map = this._map;
-    var zoom = map.getZoom();
+    // For attribution we're interested in the zoom level of the tiles actually retrieved
+    // rather than any (unsupported by Google) fractional zoom level of the map
+    var zoom = this._tileZoom;
     var bbox = map.getBounds().toBBoxString().split(',');
     return L.Util.template(L.TileLayer.Google.ATTRIBUTION_URL, {
       GoogleTileAPIKey: this.options.GoogleTileAPIKey,
