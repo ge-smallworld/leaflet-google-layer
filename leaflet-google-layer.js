@@ -9,14 +9,14 @@ L.TileLayer.Google = L.TileLayer.extend({
     mapType: 'roadmap',
     language: 'en-GB',
     region: 'gb',
-    mapStyle: []
+    mapStyle: [],
+    requestTimeout: 64000
   },
 
   statics: {
     TILE_REQUEST: 'https://www.googleapis.com/tile/v1/tiles/{z}/{x}/{y}?session={sessionToken}&orientation=0&key={GoogleTileAPIKey}',
     ATTRIBUTION_URL: 'https://www.googleapis.com/tile/v1/viewport?session={sessionToken}&zoom={zoom}&north={north}&south={south}&east={east}&west={west}&key={GoogleTileAPIKey}',
-    SESSION_TOKEN_URL: 'https://www.googleapis.com/tile/v1/createSession?key={GoogleTileAPIKey}'
-
+    SESSION_TOKEN_URL: 'https://www.googleapis.com/tile/v1/createSession?key={GoogleTileAPIKey}',
   },
 
   _getSessionToken: function () {
@@ -49,13 +49,18 @@ L.TileLayer.Google = L.TileLayer.extend({
               _this._sessionToken = token.session;
               resolve(token);
             } else {
-              setTimeout(function() {
-                _this._promise = null;
-                _this._exponentialBackoff *= 2;
-                _this._getSessionToken();
-              }, _this._exponentialBackoff);
+              if (_this._exponentialBackoff > _this.options.requestTimeout) {
+                reject('Session request failed.  Last request took more than ' + _this.options.requestTimeout/1000 + 'seconds. Giving up.');
+              }
+              else {
+                setTimeout(function() {
+                  _this._promise = null;
+                  _this._exponentialBackoff *= 2;
+                  _this._getSessionToken();
+                }, _this._exponentialBackoff);
 
-              reject('Session request failed, trying again in ' + _this._exponentialBackoff/1000 + 'seconds');
+                reject('Session request failed, trying again in ' + _this._exponentialBackoff/1000 + 'seconds');
+              }
             }
           }
         };
@@ -271,7 +276,6 @@ L.TileLayer.Google = L.TileLayer.extend({
       return;
     this._getSessionToken()
       .then(function() {
-        var attributionUrl = _this._getAttributionUrl();
         _this._exponentialTimeout = 1000;
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
@@ -286,14 +290,19 @@ L.TileLayer.Google = L.TileLayer.extend({
               done(null, _this.attribution);
             }
           } else if (this.readyState === 4) {
-            console.error('Attribution request unsuccessful, retrying in ' + _this._exponentialTimeout / 1000 + ' seconds');
-            setTimeout(function () {
-              _this._exponentialTimeout *= 2;
-              _this._makeGetRequest(xhttp, attributionUrl);
-            }, _this._exponentialTimeout);
+            if (_this._exponentialTimeout > _this.options.requestTimeout) {
+              console.error('Attribution request unsuccessful.  Last request took more than ' + _this.options.requestTimeout / 1000 + ' seconds.  Giving up.');
+            }
+            else {            
+              console.error('Attribution request unsuccessful, retrying in ' + _this._exponentialTimeout / 1000 + ' seconds');
+              setTimeout(function () {
+                _this._exponentialTimeout *= 2;
+                _this._makeGetRequest(xhttp, _this._getAttributionUrl());
+              }, _this._exponentialTimeout);
+            }
           }
         };
-        _this._makeGetRequest(xhttp, attributionUrl);
+        _this._makeGetRequest(xhttp, _this._getAttributionUrl());
       }.bind(this))
       .catch(function(e) {
         if (done && !done.target) {

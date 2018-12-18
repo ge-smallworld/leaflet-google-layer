@@ -87,50 +87,50 @@ describe('Google Layer', function () {
   });
 
   it('should update the attribution', function (done) {
-    server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=1234',
-      [200, {'Content-Type': 'application/json'}, '{"session":"session","expiry":"1000"}']);
+    try {
+      server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=1234',
+        [200, {'Content-Type': 'application/json'}, '{"session":"session","expiry":"1000"}']);
 
-    server.respondWith('GET', 'https://www.googleapis.com/tile/v1/viewport?session=session&zoom=1&north=2&south=3&east=4&west=5&key=1234',
-      [200, {'Content-Type': 'application/json'}, '{"copyright":"this is a test"}']);
+      server.respondWith('GET', 'https://www.googleapis.com/tile/v1/viewport?session=session&zoom=1&north=2&south=3&east=4&west=5&key=1234',
+        [200, {'Content-Type': 'application/json'}, '{"copyright":"this is a test"}']);
 
-    leafletGoogleLayer.initialize({
-      'GoogleTileAPIKey': '1234'
-    });
+      leafletGoogleLayer.initialize({
+        'GoogleTileAPIKey': '1234',
+      });
+      leafletGoogleLayer._tileZoom = 1;
 
-    const attributions = {};
-    let mockMap = function() {
-      return {
-        getZoom: function() {
-          return 1;
-        },
-        getBounds: function() {
-          return {
-            toBBoxString: function() {
-              return '3,4,2,5';
-            }
-          }
-        },
-        attributionControl: {
-          addAttribution: function(attr) {
-            if (!attributions[attr]) {
-              attributions[attr] = true;
+      const attributions = {};
+      let mockMap = function() {
+        return {
+          getBounds: function() {
+            return {
+              toBBoxString: function() {
+                return '3,4,2,5';
+              }
             }
           },
-          removeAttribution: function(attr) {
-            if (attributions[attr]) {
-              attributions[attr] = false;
+          attributionControl: {
+            addAttribution: function(attr) {
+              if (!attributions[attr]) {
+                attributions[attr] = true;
+              }
+            },
+            removeAttribution: function(attr) {
+              if (attributions[attr]) {
+                attributions[attr] = false;
+              }
             }
           }
-        }
+        };
       };
-    };
-    leafletGoogleLayer._map = mockMap();
+      leafletGoogleLayer._map = mockMap();
 
-    leafletGoogleLayer._updateAttribution(function(error, attribution) {
-      assert.equal(attribution, 'this is a test');
-      assert.equal(leafletGoogleLayer.getAttribution(), 'this is a test');
-      done();
-    });
+      leafletGoogleLayer._updateAttribution(function(error, attribution) {
+        assert.equal(attribution, 'this is a test');
+        assert.equal(leafletGoogleLayer.getAttribution(), 'this is a test');
+        done();
+      });
+    } catch (error) { done(error); }
   });
 
   it('should get a new session token when setting a new map type', function() {
@@ -145,7 +145,7 @@ describe('Google Layer', function () {
     assert.isTrue(leafletGoogleLayer._getSessionToken.called);
   });
 
-  it('should throw an error wen attempting to set an invalid map type', function() {
+  it('should throw an error when attempting to set an invalid map type', function() {
     leafletGoogleLayer.initialize({
       'GoogleTileAPIKey': '1234'
     });
@@ -224,18 +224,19 @@ describe('Google Layer', function () {
       [200, {'Content-Type': 'application/json'}, '{"session":"session","expiry":"1000"}']);
 
     server.respondWith('GET', 'https://www.googleapis.com/tile/v1/viewport?session=session&zoom=1&north=2&south=3&east=4&west=5&key=1234',
+      [200, {'Content-Type': 'application/json'}, '{"copyright":"this is a test"}']);
+
+    server.respondWith('GET', 'https://www.googleapis.com/tile/v1/viewport?session=session&zoom=2&north=2&south=3&east=4&west=5&key=1234',
       [404, {}, '']);
 
     leafletGoogleLayer.initialize({
       'GoogleTileAPIKey': '1234'
     });
+    leafletGoogleLayer._tileZoom = 2;
 
     const attributions = {};
     let mockMap = function() {
       return {
-        getZoom: function() {
-          return 1;
-        },
         getBounds: function() {
           return {
             toBBoxString: function() {
@@ -258,7 +259,6 @@ describe('Google Layer', function () {
       };
     };
     leafletGoogleLayer._map = mockMap();
-
     leafletGoogleLayer._updateAttribution();
 
     setTimeout(function() {
@@ -274,7 +274,66 @@ describe('Google Layer', function () {
     setTimeout(function() {
       assert.isTrue(leafletGoogleLayer._makeGetRequest.calledThrice);
       assert.equal(leafletGoogleLayer._exponentialTimeout, 4000);
-      leafletGoogleLayer._makeGetRequest.restore();
+      leafletGoogleLayer._tileZoom = 1;
+      done();
+    }, 4000);
+  });
+
+  it('should stop retrying to get the attribution with exponential backoff once the request timeout is exceeded', function (done) {
+    this.timeout(12000);
+    sinon.spy(leafletGoogleLayer, '_makeGetRequest');
+    server.respondWith('POST', 'https://www.googleapis.com/tile/v1/createSession?key=1234',
+      [200, {'Content-Type': 'application/json'}, '{"session":"session","expiry":"1000"}']);
+
+    server.respondWith('GET', 'https://www.googleapis.com/tile/v1/viewport?session=session&zoom=2&north=2&south=3&east=4&west=5&key=1234',
+      [404, {}, '']);
+
+    leafletGoogleLayer.initialize({
+      'GoogleTileAPIKey': '1234',
+      'requestTimeout': '1000'
+    });
+    leafletGoogleLayer._tileZoom = 2;
+
+    const attributions = {};
+    let mockMap = function() {
+      return {
+        getBounds: function() {
+          return {
+            toBBoxString: function() {
+              return '3,4,2,5';
+            }
+          }
+        },
+        attributionControl: {
+          addAttribution: function(attr) {
+            if (!attributions[attr]) {
+              attributions[attr] = true;
+            }
+          },
+          removeAttribution: function(attr) {
+            if (attributions[attr]) {
+              attributions[attr] = false;
+            }
+          }
+        }
+      };
+    };
+    leafletGoogleLayer._map = mockMap();
+    leafletGoogleLayer._updateAttribution();
+
+    setTimeout(function() {
+      assert.isTrue(leafletGoogleLayer._makeGetRequest.calledOnce);
+      assert.equal(leafletGoogleLayer._exponentialTimeout, 1000);
+    }, 1000);
+
+    setTimeout(function() {
+      assert.isTrue(leafletGoogleLayer._makeGetRequest.calledTwice);
+      assert.equal(leafletGoogleLayer._exponentialTimeout, 2000);
+    }, 2000);
+
+    setTimeout(function() {
+      assert.isFalse(leafletGoogleLayer._makeGetRequest.calledThrice);
+      assert.equal(leafletGoogleLayer._exponentialTimeout, 2000);
       done();
     }, 4000);
   });
