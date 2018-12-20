@@ -1,7 +1,7 @@
 {
   "name": "leaflet-google-layer",
-  "version": "1.0.1",
-  "description": "Google Maps Layer for Leaflet v1.0.1",
+  "version": "1.0.2",
+  "description": "Google Maps Layer for Leaflet v1.0.2",
   "main": "index.js",
   "browserify": {
     "transform": [
