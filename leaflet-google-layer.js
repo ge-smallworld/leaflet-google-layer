@@ -6,7 +6,7 @@ var VALID_MAP_TYPES = ['roadmap', 'satellite'];
 L.TileLayer.Google = L.TileLayer.extend({
   options: {
     GoogleTileAPIKey: null, // Required
-    mapType: 'roadmap',
+    imagery: 'roadmap',
     language: 'en-GB',
     region: 'gb',
     mapStyle: [],
@@ -30,7 +30,7 @@ L.TileLayer.Google = L.TileLayer.extend({
           GoogleTileAPIKey: _this.options.GoogleTileAPIKey
         });
         var body = JSON.stringify({
-          mapType: _this.options.mapType,
+          mapType: _this.options.imagery,
           language: _this.options.language,
           region: _this.options.region,
           overlay: true,
@@ -92,8 +92,8 @@ L.TileLayer.Google = L.TileLayer.extend({
       throw new Error('Must supply options.GoogleTileAPIKey');
     }
     options = L.setOptions(this, options);
-    if (VALID_MAP_TYPES.indexOf(options.mapType) < 0) {
-      throw new Error("'" + options.mapType + "' is an invalid mapType");
+    if (VALID_MAP_TYPES.indexOf(options.imagery) < 0) {
+      throw new Error("'" + options.imagery + "' is an invalid mapType");
     }
     this._sessionToken = null;
     this._needToRefreshToken = false;
@@ -207,8 +207,8 @@ L.TileLayer.Google = L.TileLayer.extend({
       throw new Error("'" + newSet + "' is an invalid mapType");
     }
 
-    if (this.options.mapType !== newSet) {
-      this.options.mapType = newSet;
+    if (this.options.imagery !== newSet) {
+      this.options.imagery = newSet;
       this._promise = null;
       this._getSessionToken().then(function() {
         this.redraw();
